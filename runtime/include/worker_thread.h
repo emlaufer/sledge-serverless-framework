@@ -8,6 +8,7 @@
 extern thread_local struct arch_context worker_thread_base_context;
 extern thread_local int                 worker_thread_epoll_file_descriptor;
 extern thread_local int                 worker_thread_idx;
+extern thread_local bool                worker_waiting_for_alrm;
 
 void *worker_thread_main(void *return_code);
 

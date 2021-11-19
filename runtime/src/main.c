@@ -39,6 +39,7 @@ int                          runtime_worker_core_count;
 
 bool     runtime_preemption_enabled = true;
 uint32_t runtime_quantum_us         = 5000; /* 5ms */
+bool     runtime_sync_switches      = false;
 
 /**
  * Returns instructions on use of CLI if used incorrectly
@@ -220,6 +221,14 @@ runtime_configure()
 	char *preempt_disable = getenv("SLEDGE_DISABLE_PREEMPTION");
 	if (preempt_disable != NULL && strcmp(preempt_disable, "false") != 0) runtime_preemption_enabled = false;
 	printf("\tPreemption: %s\n", runtime_preemption_enabled ? "Enabled" : "Disabled");
+
+    /* Runtime Sync Switches */
+    // aligns sandbox context switches so cache flushes don't thrash
+    // i.e. forces workers to wait when sandboxes complete or block till the
+    // next quantum
+    char *sync_switches = getenv("SLEDGE_SYNC_SWITCHES");
+	if (sync_switches != NULL && strcmp(sync_switches, "true") != 0) runtime_sync_switches = true;
+	printf("\tSync Switches: %s\n", runtime_sync_switches ? "Enabled" : "Disabled");
 
 	/* Runtime Quantum */
 	char *quantum_raw = getenv("SLEDGE_QUANTUM_US");

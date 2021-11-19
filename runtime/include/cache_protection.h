@@ -7,8 +7,6 @@
 
 #include "flush.h"
 
-#define CACHE_FLUSH_LOG
-
 enum CACHE_PROTECTION
 {
 	CACHE_PROTECTION_NONE = 0,

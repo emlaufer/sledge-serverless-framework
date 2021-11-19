@@ -186,6 +186,9 @@ scheduler_log_sandbox_switch(struct sandbox *current_sandbox, struct sandbox *ne
 static inline void
 scheduler_preemptive_switch_to(ucontext_t *interrupted_context, struct sandbox *next)
 {
+    // clear the cache via policy
+    cache_protection_flush();
+
 	/* Switch to next sandbox */
 	switch (next->ctxt.variant) {
 	case ARCH_CONTEXT_VARIANT_FAST: {
@@ -247,9 +250,6 @@ scheduler_preemptive_sched(ucontext_t *interrupted_context)
 	sandbox_preempt(current);
 	arch_context_save_slow(&current->ctxt, &interrupted_context->uc_mcontext);
 
-    // clear the cache via policy
-    cache_protection_flush();
-
 	scheduler_preemptive_switch_to(interrupted_context, next);
 }
 
@@ -261,6 +261,9 @@ scheduler_preemptive_sched(ucontext_t *interrupted_context)
 static inline void
 scheduler_cooperative_switch_to(struct sandbox *next_sandbox)
 {
+    // clear the cache via policy
+    cache_protection_flush();
+
 	assert(current_sandbox_get() == NULL);
 
 	struct arch_context *next_context = &next_sandbox->ctxt;
@@ -304,9 +307,6 @@ scheduler_cooperative_sched()
 	/* Switch to a sandbox if one is ready to run */
 	struct sandbox *next_sandbox = scheduler_get_next();
 	if (next_sandbox != NULL) scheduler_cooperative_switch_to(next_sandbox);
-
-    // clear the cache via policy
-    cache_protection_flush();
 
 	/* Clear the completion queue */
 	local_completion_queue_free();

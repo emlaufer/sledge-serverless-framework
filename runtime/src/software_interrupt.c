@@ -154,6 +154,12 @@ software_interrupt_handle_signals(int signal_type, siginfo_t *signal_info, void 
 	case SIGALRM: {
 		sigalrm_propagate_workers(signal_info);
 
+        // if looping for scheduling, do it here...
+        if (worker_waiting_for_alrm) {
+            scheduler_cooperative_sched();
+            goto done;
+        }
+
 		/* Nonpreemptive, so defer */
 		if (!sandbox_is_preemptable(current_sandbox)) {
 			atomic_fetch_add(&software_interrupt_deferred_sigalrm, 1);

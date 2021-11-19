@@ -28,6 +28,10 @@ thread_local int worker_thread_epoll_file_descriptor;
 /* Used to index into global arguments and deadlines arrays */
 thread_local int worker_thread_idx;
 
+/* Used for syncing switches. When thread returns to idle loop, set to true, such
+ * that an alarm knows to coop sched it... */
+thread_local bool worker_waiting_for_alrm;
+
 /***********************
  * Worker Thread Logic *
  **********************/
@@ -45,6 +49,8 @@ worker_thread_main(void *argument)
 
 	/* Index was passed via argument */
 	worker_thread_idx = *(int *)argument;
+
+    worker_waiting_for_alrm = false;
 
 	/* Set my priority */
 	// runtime_set_pthread_prio(pthread_self(), 2);
@@ -67,7 +73,17 @@ worker_thread_main(void *argument)
 	}
 
 	/* Idle Loop */
-	while (true) scheduler_cooperative_sched();
+    if (runtime_sync_switches) {
+        // schedule first thread, just hum until sigalrm gotten
+        scheduler_cooperative_sched();
+        while (true) {
+            worker_waiting_for_alrm = true;
+        }
+    } else {
+	    while (true) {
+            scheduler_cooperative_sched();
+        }
+    }
 
 	panic("Worker Thread unexpectedly completed run loop.");
 }
