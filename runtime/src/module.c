@@ -143,7 +143,7 @@ module_free(struct module *module)
 
 struct module *
 module_new(char *name, char *path, uint32_t stack_size, uint32_t max_memory, uint32_t relative_deadline_us, int port,
-           int request_size, int response_size, int admissions_percentile, uint32_t expected_execution_us)
+           int request_size, int response_size, int admissions_percentile, uint32_t expected_execution_us, int32_t domain)
 {
 	int rc = 0;
 
@@ -187,6 +187,8 @@ module_new(char *name, char *path, uint32_t stack_size, uint32_t max_memory, uin
 	if (response_size == 0) response_size = MODULE_DEFAULT_REQUEST_RESPONSE_SIZE;
 	module->max_request_size  = round_up_to_page(request_size);
 	module->max_response_size = round_up_to_page(response_size);
+
+    module->domain = domain;
 
 	/* Table initialization calls a function that runs within the sandbox. Rather than setting the current sandbox,
 	 * we partially fake this out by only setting the module_indirect_table and then clearing after table
@@ -321,6 +323,7 @@ module_new_from_json(char *file_name)
 		int      j                                                   = 1;
 		int      ntoks                                               = 2 * tokens[i].size;
 		char     response_content_type[HTTP_MAX_HEADER_VALUE_LENGTH] = { 0 };
+        int32_t  domain                                              = -1;
 
 		for (; j < ntoks;) {
 			int  ntks     = 1;
@@ -381,6 +384,10 @@ module_new_from_json(char *file_name)
 			} else if (strcmp(key, "http-resp-content-type") == 0) {
 				if (strlen(val) == 0) panic("http-resp-content-type was unexpectedly an empty string");
 				strcpy(response_content_type, val);
+            } else if (strcmp(key, "domain") == 0) {
+				int32_t buffer = strtol(val, NULL, 10);
+                if (buffer < -1) panic("buffer must be a value from -1 to INT32_MAX");
+                domain = (int32_t) buffer;
 			} else {
 #ifdef LOG_MODULE_LOADING
 				debuglog("Invalid (%s,%s)\n", key, val);
@@ -417,7 +424,7 @@ module_new_from_json(char *file_name)
 		/* Allocate a module based on the values from the JSON */
 		struct module *module = module_new(module_name, module_path, 0, 0, relative_deadline_us, port,
 		                                   request_size, response_size, admissions_percentile,
-		                                   expected_execution_us);
+		                                   expected_execution_us, domain);
 		if (module == NULL) goto module_new_err;
 
 		assert(module);

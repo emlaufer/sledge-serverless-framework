@@ -111,5 +111,4 @@ struct sandbox {
 	/* System Interface State */
 	int32_t arguments_offset; /* actual placement of arguments in the sandbox. */
 	int32_t return_value;
-
 } PAGE_ALIGNED;

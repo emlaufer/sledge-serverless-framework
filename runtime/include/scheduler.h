@@ -180,15 +180,27 @@ scheduler_log_sandbox_switch(struct sandbox *current_sandbox, struct sandbox *ne
 		         &current_sandbox->ctxt, arch_context_variant_print(current_sandbox->ctxt.variant),
 		         next_sandbox->id, &next_sandbox->ctxt, arch_context_variant_print(next_sandbox->ctxt.variant));
 	}
+    if (runtime_domains) {
+        char current_domain[32] = {0};
+        char next_domain[32] = {0};
+        if (current_sandbox) {
+            snprintf(current_domain, 32, "Domain %d", current_sandbox->module->domain);
+        } else {
+            strcpy(current_domain, "Base Ctx Domain");
+        }
+        if (next_sandbox) {
+            snprintf(next_domain, 32, "Domain %d", next_sandbox->module->domain);
+        } else {
+            strcpy(next_domain, "Base Ctx Domain");
+        }
+		debuglog("%s > %s\n", current_domain, next_domain); 
+    }
 #endif
 }
 
 static inline void
 scheduler_preemptive_switch_to(ucontext_t *interrupted_context, struct sandbox *next)
 {
-    // clear the cache via policy
-    cache_protection_flush();
-
 	/* Switch to next sandbox */
 	switch (next->ctxt.variant) {
 	case ARCH_CONTEXT_VARIANT_FAST: {
@@ -246,6 +258,13 @@ scheduler_preemptive_sched(ucontext_t *interrupted_context)
 
 	scheduler_log_sandbox_switch(current, next);
 
+    if (!runtime_domains || current->module->domain == -1 
+            || current->module->domain != next->module->domain) {
+        // clear the cache via policy
+        cache_protection_flush();
+    }
+
+
 	/* Preempt executing sandbox */
 	sandbox_preempt(current);
 	arch_context_save_slow(&current->ctxt, &interrupted_context->uc_mcontext);
@@ -261,9 +280,6 @@ scheduler_preemptive_sched(ucontext_t *interrupted_context)
 static inline void
 scheduler_cooperative_switch_to(struct sandbox *next_sandbox)
 {
-    // clear the cache via policy
-    cache_protection_flush();
-
 	assert(current_sandbox_get() == NULL);
 
 	struct arch_context *next_context = &next_sandbox->ctxt;
@@ -306,6 +322,10 @@ scheduler_cooperative_sched()
 
 	/* Switch to a sandbox if one is ready to run */
 	struct sandbox *next_sandbox = scheduler_get_next();
+
+    // clear the cache via policy (TODO: always do on coop for now)
+    cache_protection_flush();
+
 	if (next_sandbox != NULL) scheduler_cooperative_switch_to(next_sandbox);
 
 	/* Clear the completion queue */

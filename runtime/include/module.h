@@ -55,6 +55,10 @@ struct module {
 
 	_Atomic uint32_t            reference_count; /* ref count how many instances exist here. */
 	struct indirect_table_entry indirect_table[INDIRECT_TABLE_SIZE];
+
+    // TODO: should domain be associated with module or request?
+    // domain of -1 means all untrusted...
+    int32_t domain;
 };
 
 /*************************
@@ -148,5 +152,5 @@ module_release(struct module *module)
 void module_free(struct module *module);
 struct module *
     module_new(char *mod_name, char *mod_path, uint32_t stack_sz, uint32_t max_heap, uint32_t relative_deadline_us,
-               int port, int req_sz, int resp_sz, int admissions_percentile, uint32_t expected_execution_us);
+               int port, int req_sz, int resp_sz, int admissions_percentile, uint32_t expected_execution_us, int32_t domain);
 int module_new_from_json(char *filename);

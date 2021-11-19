@@ -155,6 +155,7 @@ software_interrupt_handle_signals(int signal_type, siginfo_t *signal_info, void 
 		sigalrm_propagate_workers(signal_info);
 
         // if looping for scheduling, do it here...
+        // TODO: is this working?
         if (worker_waiting_for_alrm) {
             worker_waiting_for_alrm = false;
             scheduler_cooperative_sched();

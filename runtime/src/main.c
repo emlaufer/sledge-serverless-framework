@@ -40,6 +40,7 @@ int                          runtime_worker_core_count;
 bool     runtime_preemption_enabled = true;
 uint32_t runtime_quantum_us         = 5000; /* 5ms */
 bool     runtime_sync_switches      = false;
+bool     runtime_domains            = false;
 
 /**
  * Returns instructions on use of CLI if used incorrectly
@@ -229,6 +230,12 @@ runtime_configure()
     char *sync_switches = getenv("SLEDGE_SYNC_SWITCHES");
 	if (sync_switches != NULL && strcmp(sync_switches, "true") != 0) runtime_sync_switches = true;
 	printf("\tSync Switches: %s\n", runtime_sync_switches ? "Enabled" : "Disabled");
+
+    /* Runtime Module Domains */
+    // module domains will skip cache flushes / side channel mitigations on ctx switch
+    char *domains = getenv("SLEDGE_DOMAINS");
+	if (sync_switches != NULL && strcmp(sync_switches, "true") != 0) runtime_domains = true;
+	printf("\tDomains: %s\n", runtime_domains ? "Enabled" : "Disabled");
 
 	/* Runtime Quantum */
 	char *quantum_raw = getenv("SLEDGE_QUANTUM_US");

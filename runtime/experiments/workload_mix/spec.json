@@ -8,7 +8,8 @@
 		"relative-deadline-us": 20000,
 		"http-req-size": 1024,
 		"http-resp-size": 1024,
-		"http-resp-content-type": "text/plain"
+		"http-resp-content-type": "text/plain",
+        "domain": 0
 	},
 	{
 		"name": "fibonacci_40",
@@ -19,6 +20,7 @@
 		"relative-deadline-us": 20000000,
 		"http-req-size": 1024,
 		"http-resp-size": 1024,
-		"http-resp-content-type": "text/plain"
+		"http-resp-content-type": "text/plain",
+        "domain": 1
 	}
 ]

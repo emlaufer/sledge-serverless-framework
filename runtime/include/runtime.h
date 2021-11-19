@@ -26,6 +26,7 @@ enum RUNTIME_SIGALRM_HANDLER
 
 extern bool                         runtime_preemption_enabled;
 extern bool                         runtime_sync_switches;
+extern bool                         runtime_domains;
 extern uint32_t                     runtime_processor_speed_MHz;
 extern uint32_t                     runtime_quantum_us;
 extern enum RUNTIME_SIGALRM_HANDLER runtime_sigalrm_handler;
