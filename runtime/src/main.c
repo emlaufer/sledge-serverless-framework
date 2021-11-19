@@ -234,7 +234,7 @@ runtime_configure()
     /* Runtime Module Domains */
     // module domains will skip cache flushes / side channel mitigations on ctx switch
     char *domains = getenv("SLEDGE_DOMAINS");
-	if (sync_switches != NULL && strcmp(sync_switches, "true") != 0) runtime_domains = true;
+	if (domains != NULL && strcmp(domains, "true") != 0) runtime_domains = true;
 	printf("\tDomains: %s\n", runtime_domains ? "Enabled" : "Disabled");
 
 	/* Runtime Quantum */
