@@ -156,6 +156,7 @@ software_interrupt_handle_signals(int signal_type, siginfo_t *signal_info, void 
 
         // if looping for scheduling, do it here...
         if (worker_waiting_for_alrm) {
+            worker_waiting_for_alrm = false;
             scheduler_cooperative_sched();
             goto done;
         }
