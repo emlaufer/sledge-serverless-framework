@@ -228,13 +228,13 @@ runtime_configure()
     // i.e. forces workers to wait when sandboxes complete or block till the
     // next quantum
     char *sync_switches = getenv("SLEDGE_SYNC_SWITCHES");
-	if (sync_switches != NULL && strcmp(sync_switches, "true") != 0) runtime_sync_switches = true;
+	if (sync_switches != NULL && strcmp(sync_switches, "true") == 0) runtime_sync_switches = true;
 	printf("\tSync Switches: %s\n", runtime_sync_switches ? "Enabled" : "Disabled");
 
     /* Runtime Module Domains */
     // module domains will skip cache flushes / side channel mitigations on ctx switch
     char *domains = getenv("SLEDGE_DOMAINS");
-	if (domains != NULL && strcmp(domains, "true") != 0) runtime_domains = true;
+	if (domains != NULL && strcmp(domains, "true") == 0) runtime_domains = true;
 	printf("\tDomains: %s\n", runtime_domains ? "Enabled" : "Disabled");
 
 	/* Runtime Quantum */
