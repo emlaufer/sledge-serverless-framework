@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "client_socket.h"
+#include "cache_protection.h"
 #include "current_sandbox.h"
 #include "global_request_scheduler.h"
 #include "global_request_scheduler_deque.h"
@@ -21,6 +22,8 @@
 #include "sandbox_set_as_running_sys.h"
 #include "sandbox_set_as_running_user.h"
 #include "scheduler_execute_epoll_loop.h"
+
+#define LOG_CONTEXT_SWITCHES
 
 enum SCHEDULER
 {
@@ -244,6 +247,9 @@ scheduler_preemptive_sched(ucontext_t *interrupted_context)
 	sandbox_preempt(current);
 	arch_context_save_slow(&current->ctxt, &interrupted_context->uc_mcontext);
 
+    // clear the cache via policy
+    cache_protection_flush();
+
 	scheduler_preemptive_switch_to(interrupted_context, next);
 }
 
@@ -298,6 +304,9 @@ scheduler_cooperative_sched()
 	/* Switch to a sandbox if one is ready to run */
 	struct sandbox *next_sandbox = scheduler_get_next();
 	if (next_sandbox != NULL) scheduler_cooperative_switch_to(next_sandbox);
+
+    // clear the cache via policy
+    cache_protection_flush();
 
 	/* Clear the completion queue */
 	local_completion_queue_free();

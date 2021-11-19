@@ -15,12 +15,14 @@
 #endif
 
 #include "debuglog.h"
+#include "flush.h"
 #include "listener_thread.h"
 #include "module.h"
 #include "panic.h"
 #include "runtime.h"
 #include "sandbox_types.h"
 #include "scheduler.h"
+#include "cache_protection.h"
 #include "software_interrupt.h"
 #include "worker_thread.h"
 
@@ -185,6 +187,21 @@ runtime_configure()
 		panic("Invalid scheduler policy: %s. Must be {EDF|FIFO}\n", scheduler_policy);
 	}
 	printf("\tScheduler Policy: %s\n", scheduler_print(scheduler));
+
+    /* Cache Flush Policy */
+    char *cache_policy = getenv("SLEDGE_CACHE_PROTECTION");
+    if (cache_policy == NULL) cache_policy = "NONE";
+	if (strcmp(cache_policy, "NONE") == 0) {
+		cache_protection = CACHE_PROTECTION_NONE;
+	} else if (strcmp(cache_policy, "FLUSH") == 0) {
+        if (!flush_init()) {
+            panic("Cannot initialize flush module. Did you install the cool kernel module correctly?\n");
+        }
+		cache_protection = CACHE_PROTECTION_FLUSH;
+	} else {
+		panic("Invalid cache policy: %s. Must be {NONE|FLUSH}\n", cache_policy);
+	}
+	printf("\tCache Policy: %s\n", cache_protection_print(cache_protection));
 
 	/* Sigalrm Handler Technique */
 	char *sigalrm_policy = getenv("SLEDGE_SIGALRM_HANDLER");
