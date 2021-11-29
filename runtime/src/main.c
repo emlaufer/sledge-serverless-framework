@@ -185,8 +185,10 @@ runtime_configure()
 		scheduler = SCHEDULER_EDF;
 	} else if (strcmp(scheduler_policy, "FIFO") == 0) {
 		scheduler = SCHEDULER_FIFO;
+	} else if (strcmp(scheduler_policy, "GANG") == 0) {
+		scheduler = SCHEDULER_GANG;
 	} else {
-		panic("Invalid scheduler policy: %s. Must be {EDF|FIFO}\n", scheduler_policy);
+		panic("Invalid scheduler policy: %s. Must be {EDF|FIFO|GANG}\n", scheduler_policy);
 	}
 	printf("\tScheduler Policy: %s\n", scheduler_print(scheduler));
 

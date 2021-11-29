@@ -7,6 +7,7 @@
 #include "client_socket.h"
 #include "cache_protection.h"
 #include "current_sandbox.h"
+#include "gang_scheduler.h"
 #include "global_request_scheduler.h"
 #include "global_request_scheduler_deque.h"
 #include "global_request_scheduler_minheap.h"
@@ -28,16 +29,17 @@
 enum SCHEDULER
 {
 	SCHEDULER_FIFO = 0,
-	SCHEDULER_EDF  = 1
+	SCHEDULER_EDF  = 1,
+    SCHEDULER_GANG = 2,
 };
 
 extern enum SCHEDULER scheduler;
 
 static inline struct sandbox *
-scheduler_edf_get_next()
+scheduler_edf_get_next(bool preemptive)
 {
 	/* Get the deadline of the sandbox at the head of the local request queue */
-	struct sandbox *        local          = local_runqueue_get_next();
+	struct sandbox *        local          = local_runqueue_get_next(preemptive);
 	uint64_t                local_deadline = local == NULL ? UINT64_MAX : local->absolute_deadline;
 	struct sandbox_request *request        = NULL;
 
@@ -59,7 +61,7 @@ scheduler_edf_get_next()
 
 /* Return what is at the head of the local runqueue or NULL if empty */
 done:
-	return local_runqueue_get_next();
+	return local_runqueue_get_next(preemptive);
 err_allocate:
 	client_socket_send(request->socket_descriptor, 503);
 	client_socket_close(request->socket_descriptor, &request->socket_address);
@@ -68,9 +70,10 @@ err_allocate:
 }
 
 static inline struct sandbox *
-scheduler_fifo_get_next()
+scheduler_fifo_get_next(bool preemptive)
 {
-	struct sandbox *sandbox = local_runqueue_get_next();
+    // TODO: get rid of preemptive bool later...
+	struct sandbox *sandbox = local_runqueue_get_next(preemptive);
 
 	struct sandbox_request *sandbox_request = NULL;
 
@@ -85,7 +88,7 @@ scheduler_fifo_get_next()
 	} else if (sandbox == current_sandbox_get()) {
 		/* Execute Round Robin Scheduling Logic if the head is the current sandbox */
 		local_runqueue_list_rotate();
-		sandbox = local_runqueue_get_next();
+		sandbox = local_runqueue_get_next(preemptive);
 	}
 
 
@@ -101,7 +104,48 @@ err:
 }
 
 static inline struct sandbox *
-scheduler_get_next()
+scheduler_gang_get_next(bool preemptive)
+{
+    // if not preemptive:
+    //  get next sandbox from same domain
+    //  if there is none, try to get one from global scheduler
+    // TODO: assumption: preemtion only happens on timer interrupt
+    //
+    // cooperative case first
+    // get the next sandbox... should be from this domain
+
+	struct sandbox *sandbox = local_runqueue_get_next(preemptive);
+	struct sandbox_request *sandbox_request = NULL;
+
+	if (sandbox == NULL) {
+		/* If the local runqueue is empty, pull from global request scheduler */
+		if (global_request_scheduler_remove(&sandbox_request) < 0) goto err;
+
+		sandbox = sandbox_allocate(sandbox_request);
+		if (!sandbox) goto err_allocate;
+
+		sandbox_set_as_runnable(sandbox, SANDBOX_INITIALIZED);
+	} else if (sandbox == current_sandbox_get()) {
+		/* Execute Round Robin Scheduling Logic if the head is the current sandbox */
+		local_runqueue_list_rotate();
+		sandbox = local_runqueue_get_next(preemptive);
+	}
+
+
+done:
+	return sandbox;
+err_allocate:
+	client_socket_send(sandbox_request->socket_descriptor, 503);
+	client_socket_close(sandbox_request->socket_descriptor, &sandbox->client_address);
+	free(sandbox_request);
+err:
+	sandbox = NULL;
+	goto done;
+
+}
+
+static inline struct sandbox *
+scheduler_get_next(bool preemptive)
 {
 #ifdef LOG_DEFERRED_SIGALRM_MAX
 	if (unlikely(software_interrupt_deferred_sigalrm
@@ -113,9 +157,11 @@ scheduler_get_next()
 	atomic_store(&software_interrupt_deferred_sigalrm, 0);
 	switch (scheduler) {
 	case SCHEDULER_EDF:
-		return scheduler_edf_get_next();
+		return scheduler_edf_get_next(preemptive);
 	case SCHEDULER_FIFO:
-		return scheduler_fifo_get_next();
+		return scheduler_fifo_get_next(preemptive);
+    case SCHEDULER_GANG:
+        return scheduler_gang_get_next(preemptive);
 	default:
 		panic("Unimplemented\n");
 	}
@@ -131,6 +177,10 @@ scheduler_initialize()
 	case SCHEDULER_FIFO:
 		global_request_scheduler_deque_initialize();
 		break;
+    case SCHEDULER_GANG:
+        // TODO: What is the global policy for gang...?
+        global_request_scheduler_deque_initialize();
+        break;
 	default:
 		panic("Invalid scheduler policy: %u\n", scheduler);
 	}
@@ -146,6 +196,9 @@ scheduler_runqueue_initialize()
 	case SCHEDULER_FIFO:
 		local_runqueue_list_initialize();
 		break;
+    case SCHEDULER_GANG:
+        local_runqueue_gang_initialize();
+        break;
 	default:
 		panic("Invalid scheduler policy: %u\n", scheduler);
 	}
@@ -159,6 +212,8 @@ scheduler_print(enum SCHEDULER variant)
 		return "FIFO";
 	case SCHEDULER_EDF:
 		return "EDF";
+    case SCHEDULER_GANG:
+        return "GANG";
 	}
 }
 
@@ -242,7 +297,7 @@ scheduler_preemptive_sched(ucontext_t *interrupted_context)
 
 	sandbox_interrupt(current);
 
-	struct sandbox *next = scheduler_get_next();
+	struct sandbox *next = scheduler_get_next(true);
 	/* Assumption: the current sandbox is on the runqueue, so the scheduler should always return something */
 	assert(next != NULL);
 
@@ -321,7 +376,7 @@ scheduler_cooperative_sched()
 	scheduler_execute_epoll_loop();
 
 	/* Switch to a sandbox if one is ready to run */
-	struct sandbox *next_sandbox = scheduler_get_next();
+	struct sandbox *next_sandbox = scheduler_get_next(false);
 
     // clear the cache via policy (TODO: always do on coop for now)
     cache_protection_flush();
