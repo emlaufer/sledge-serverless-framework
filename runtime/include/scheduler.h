@@ -197,7 +197,8 @@ scheduler_runqueue_initialize()
 		local_runqueue_list_initialize();
 		break;
     case SCHEDULER_GANG:
-        local_runqueue_gang_initialize();
+		local_runqueue_list_initialize();
+        //local_runqueue_gang_initialize();
         break;
 	default:
 		panic("Invalid scheduler policy: %u\n", scheduler);
