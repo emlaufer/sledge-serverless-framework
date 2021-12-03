@@ -104,6 +104,12 @@ local_runqueue_gang_next_domain()
     runqueue_gang.current_domain = (runqueue_gang.current_domain + 1) % runqueue_gang.num_domains;
 }
 
+uint32_t
+local_runqueue_gang_current_domain()
+{
+    return runqueue_gang.current_domain;
+}
+
 void
 local_runqueue_gang_initialize()
 {

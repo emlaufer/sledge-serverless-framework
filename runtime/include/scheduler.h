@@ -116,7 +116,14 @@ scheduler_gang_get_next(bool preemptive)
 
     // swap to the next domain for gang scheduling...
     if (preemptive) {
+#ifdef LOG_DOMAIN_SWITCH
+        uint32_t current_domain = local_runqueue_gang_current_domain();
+#endif
         local_runqueue_gang_next_domain();
+#ifdef LOG_DOMAIN_SWITCH
+        uint32_t next_domain = local_runqueue_gang_current_domain();
+		debuglog("Swapping domains: %s > %s\n", current_domain, next_domain); 
+#endif
     }
 
 	struct sandbox *sandbox = local_runqueue_get_next(preemptive);
