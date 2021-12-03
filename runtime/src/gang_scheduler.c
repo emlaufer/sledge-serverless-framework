@@ -16,6 +16,7 @@ thread_local static struct runqueue_gang runqueue_gang;
 bool
 local_runqueue_gang_domain_is_empty()
 {
+    uint32_t domain = runqueue_gang.current_domain;
 	return ps_list_head_empty(&runqueue_gang.domain_lists[domain]);
 }
 
@@ -115,7 +116,7 @@ local_runqueue_gang_initialize()
     //  gang function directly...
 	/* Register Function Pointers for Abstract Scheduling API */
 	struct local_runqueue_config config = { .add_fn      = local_runqueue_gang_append,
-		                                .is_empty_fn = local_runqueue_gang_is_empty,
+		                                .is_empty_fn = local_runqueue_gang_domain_is_empty,
 		                                .delete_fn   = local_runqueue_gang_remove,
 		                                .get_next_fn = local_runqueue_gang_get_next };
 	local_runqueue_initialize(&config);
