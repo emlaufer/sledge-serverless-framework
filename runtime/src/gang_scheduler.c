@@ -113,4 +113,10 @@ local_runqueue_gang_initialize()
 
     // TODO: lets just ignore scheudling api for now, and just call 
     //  gang function directly...
+	/* Register Function Pointers for Abstract Scheduling API */
+	struct local_runqueue_config config = { .add_fn      = local_runqueue_gang_append,
+		                                .is_empty_fn = local_runqueue_gang_is_empty,
+		                                .delete_fn   = local_runqueue_gang_remove,
+		                                .get_next_fn = local_runqueue_gang_get_next };
+	local_runqueue_initialize(&config);
 };

@@ -114,11 +114,17 @@ scheduler_gang_get_next(bool preemptive)
     // cooperative case first
     // get the next sandbox... should be from this domain
 
+    // swap to the next domain for gang scheduling...
+    if (preemptive) {
+        local_runqueue_gang_next_domain();
+    }
+
 	struct sandbox *sandbox = local_runqueue_get_next(preemptive);
 	struct sandbox_request *sandbox_request = NULL;
 
 	if (sandbox == NULL) {
 		/* If the local runqueue is empty, pull from global request scheduler */
+        // TODO: change global_request_scheduler to respect domains...
 		if (global_request_scheduler_remove(&sandbox_request) < 0) goto err;
 
 		sandbox = sandbox_allocate(sandbox_request);
@@ -127,7 +133,7 @@ scheduler_gang_get_next(bool preemptive)
 		sandbox_set_as_runnable(sandbox, SANDBOX_INITIALIZED);
 	} else if (sandbox == current_sandbox_get()) {
 		/* Execute Round Robin Scheduling Logic if the head is the current sandbox */
-		local_runqueue_list_rotate();
+		local_runqueue_gang_rotate();
 		sandbox = local_runqueue_get_next(preemptive);
 	}
 
@@ -197,8 +203,8 @@ scheduler_runqueue_initialize()
 		local_runqueue_list_initialize();
 		break;
     case SCHEDULER_GANG:
-		local_runqueue_list_initialize();
-        //local_runqueue_gang_initialize();
+		//local_runqueue_list_initialize();
+        local_runqueue_gang_initialize();
         break;
 	default:
 		panic("Invalid scheduler policy: %u\n", scheduler);

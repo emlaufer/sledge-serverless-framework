@@ -19,5 +19,7 @@ struct runqueue_gang {
 };
 
 void local_runqueue_gang_initialize();
+void local_runqueue_gang_next_domain();
+void local_runqueue_gang_rotate();
 
 
