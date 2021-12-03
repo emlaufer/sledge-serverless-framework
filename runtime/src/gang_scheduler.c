@@ -14,9 +14,9 @@ thread_local static struct runqueue_gang runqueue_gang;
 
 // TODO: this should be domain specific...so get if current domain is empty...
 bool
-local_runqueue_gang_is_empty()
+local_runqueue_gang_domain_is_empty()
 {
-    return runqueue_gang.num_sandboxes == 0;
+	return ps_list_head_empty(&runqueue_gang.domain_lists[domain]);
 }
 
 /* Get the sandbox at the head of the thread local runqueue */
@@ -89,7 +89,7 @@ local_runqueue_gang_rotate()
 struct sandbox *
 local_runqueue_gang_get_next()
 {
-	if (local_runqueue_gang_is_empty()) return NULL;
+	if (local_runqueue_gang_domain_is_empty()) return NULL;
 
 	return local_runqueue_gang_get_head();
 }
